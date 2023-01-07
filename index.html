@@ -1,0 +1,86 @@
+<html>
+<head>
+<script>
+function appendText(text) {
+  let textBox = document.getElementById("textarea1");
+  textBox.value += getTime();
+  textBox.value += " " + text;
+  textBox.value += "\n";
+}
+function clearit() {
+  let textBox = document.getElementById("textarea1");
+  textBox.value = "Logs\n"
+  let e1rctr = document.getElementById("e1repcounter").innerHTML;
+  document.getElementById("e1repcounter").innerHTML = "0";
+}
+
+let countdown;
+
+function startCountdown() {
+  let e1rctr = document.getElementById("e1repcounter").innerHTML;
+  console.log("value =" + parseInt(e1rctr,10));
+  document.getElementById("e1repcounter").innerHTML = parseInt(e1rctr,10) + 1;
+
+  let seconds = 10;
+  let countdownElement = document.getElementById("countdown");
+  appendText("Start 10s timer!");
+  countdown = setInterval(function() {
+    seconds--;
+    document.getElementById("countdownElement").innerHTML = seconds;
+
+    if (seconds === 0) {
+      clearInterval(countdown);
+      appendText("Countdown complete!");
+      console.log("Countdown complete!");
+    }
+  }, 1000);
+}
+
+function getTime() {
+  let now = new Date();
+  return now.toLocaleTimeString();
+}
+
+let button = document.getElementById("b1");
+button.addEventListener("click", startCountdown);
+</script>
+</head>
+<body>
+<style>
+  .lg {
+    font-size: 18px;
+    font-weight: bold;
+  }
+</style>
+<table>
+<tr>
+<td>
+<p class="lg">Timer:</p>
+<p id="countdownElement" class="lg">TIMER</p>
+
+<button id="b1" type="button" onclick="startCountdown()">Start 10sec timer</button>
+<button id="b2" type="button" onclick="clearit()">Reset</button>
+</td>
+<td>&nbsp;
+</td>
+<td>
+<div>Exercise Repetition Counter:</div><span id="e1repcounter">0</span>
+</td>
+</tr>
+</table>
+<p>
+1: <img src="ex1.png"></img>
+2: <img src="ex2.png"></img>
+3: <img src="ex3.png"></img>
+4: <img src="ex4.png"></img>
+5: <img src="ex5.png"></img><br>
+6: <img src="ex6.png"></img>
+7: <img src="ex7.png"></img>
+8: <img src="ex8.png"></img>
+9: <img src="ex9.png"></img>
+10: <img src="ex10.png"></img><br>
+<textarea id="textarea1" name="textarea1" rows="15" cols="50">
+Logs
+</textarea>
+</body>
+</html> 

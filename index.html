@@ -108,7 +108,7 @@
   </style>
 </head>
 <body>
-  <div id="version">v4</div>
+  <div id="version">v5</div>
   <div id="clock">00:00:00</div>
 
   <div id="debugMenu">
@@ -139,6 +139,7 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      let autoGrid = true;
       const clockEl = document.getElementById('clock');
       const timelineEl = document.getElementById('timeline');
       const timelineContainer = document.getElementById('timelineContainer');
@@ -219,7 +220,7 @@
       }
 
       setInterval(updateCurrentLine,1000);
-      setInterval(computeGrid,3000);
+      setInterval(() => { if(autoGrid) computeGrid(); }, 3000);
 
       window.addEventListener('resize', resizeTimeline);
       window.addEventListener('orientationchange', resizeTimeline);
@@ -227,27 +228,47 @@
 
 function renderDebugMenu() {
   bubbleEditor.innerHTML = '';
+
   bubbles.forEach((b, i) => {
     const div = document.createElement('div');
     div.style.border = '1px solid #ccc';
     div.style.marginBottom = '8px';
     div.style.padding = '4px';
 
+    // Bubble text
     const textInput = document.createElement('input');
     textInput.value = b.innerHTML;
     textInput.addEventListener('input', () => { b.innerHTML = textInput.value; });
 
+    // Top (Y position)
     const topInput = document.createElement('input');
     topInput.type = 'number';
     topInput.value = parseFloat(b.style.top);
+    topInput.placeholder = 'Y (px)';
     topInput.addEventListener('input', () => { b.style.top = topInput.value + 'px'; });
 
+    // Left (X position)
     const xInput = document.createElement('input');
     xInput.type = 'number';
     xInput.value = parseFloat(b.style.left);
     xInput.placeholder = 'X (px)';
     xInput.addEventListener('input', () => { b.style.left = xInput.value + 'px'; });
 
+    // Data-start
+    const startInput = document.createElement('input');
+    startInput.type = 'text';
+    startInput.value = b.dataset.start || '';
+    startInput.placeholder = 'data-start (HH:MM)';
+    startInput.addEventListener('input', () => { b.dataset.start = startInput.value; computeGrid(); });
+
+    // Data-end
+    const endInput = document.createElement('input');
+    endInput.type = 'text';
+    endInput.value = b.dataset.end || '';
+    endInput.placeholder = 'data-end (HH:MM)';
+    endInput.addEventListener('input', () => { b.dataset.end = endInput.value; computeGrid(); });
+
+    // Delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete';
     deleteBtn.addEventListener('click', () => {
@@ -256,25 +277,42 @@ function renderDebugMenu() {
       renderDebugMenu();
     });
 
-    const saveBtn = document.createElement('button');
-    saveBtn.textContent = 'Save Position';
-    saveBtn.addEventListener('click', () => {
-      bubbles.forEach(b => {
-        b.dataset.origTop = parseFloat(b.style.top);
-        b.dataset.origLeft = b.style.left;
-    });
-    });
-    bubbleEditor.appendChild(saveBtn);
-
-
     div.appendChild(document.createTextNode(`Bubble ${i+1}`));
     div.appendChild(textInput);
     div.appendChild(topInput);
     div.appendChild(xInput);
+    div.appendChild(startInput);
+    div.appendChild(endInput);
     div.appendChild(deleteBtn);
     bubbleEditor.appendChild(div);
   });
+
+  // Save button for positions
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save Positions';
+  saveBtn.addEventListener('click', () => {
+    bubbles.forEach(b => {
+      b.dataset.origTop = parseFloat(b.style.top);
+      b.dataset.origLeft = b.style.left;
+    });
+    alert('Bubble positions saved!');
+  });
+  bubbleEditor.appendChild(saveBtn);
+
+  // Toggle computeGrid
+  const toggleDiv = document.createElement('div');
+  toggleDiv.style.marginTop = '10px';
+  const toggleLabel = document.createElement('label');
+  toggleLabel.textContent = 'Auto Grid Updates: ';
+  const toggleInput = document.createElement('input');
+  toggleInput.type = 'checkbox';
+  toggleInput.checked = true;
+  toggleInput.addEventListener('change', () => { autoGrid = toggleInput.checked; });
+  toggleLabel.appendChild(toggleInput);
+  toggleDiv.appendChild(toggleLabel);
+  bubbleEditor.appendChild(toggleDiv);
 }
+
 
       // Make dynamically added bubbles draggable
 function makeDraggable(bubble) {

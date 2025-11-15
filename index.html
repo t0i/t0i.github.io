@@ -38,17 +38,24 @@
     }
 
     .timeline-container {
-      margin-top: 80px;
       position: relative;
       width: 100%;
       overflow-x: hidden;
+      margin: 0; /* removed margin to make it flush with top */
     }
 
     .timeline {
       position: relative;
       border-top: 4px solid #444;
-      margin: 40px;
       background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
+    }
+
+    .time-label {
+      position: absolute;
+      top: -30px;
+      font-weight: bold;
+      color: #ff6600;
+      font-size: 14px;
     }
 
     .bubble {
@@ -95,7 +102,7 @@
   </style>
 </head>
 <body>
-  <div id="version">v1.0.0</div>
+  <div id="version">v1</div>
   <div id="clock">00:00:00</div>
 
   <div id="debugMenu">
@@ -112,6 +119,8 @@
   <div class="timeline-container" id="timelineContainer">
     <div class="timeline" id="timeline">
       <div class="current-line" id="currentLine"></div>
+      <div class="time-label" style="left:0%">7:00</div>
+      <div class="time-label" style="right:0%">8:00</div>
 
       <div class="bubble" data-start="7:00" data-end="7:10">🌅🚽 Wake Up<br>7:00–7:10</div>
       <div class="bubble" data-start="7:10" data-end="7:30">🥣 Breakfast<br>7:10–7:30</div>

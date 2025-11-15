@@ -41,7 +41,7 @@
       position: relative;
       width: 100%;
       overflow-x: hidden;
-      margin: 0; /* removed margin to make it flush with top */
+      margin: 0;
     }
 
     .timeline {
@@ -86,15 +86,21 @@
 
     #debugMenu {
       position: fixed;
-      right: 10px;
-      top: 10px;
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 8px;
-      font-size: 12px;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.95);
+      overflow-y: auto;
+      padding: 20px;
+      font-size: 14px;
       display: none;
       z-index: 9999;
     }
+
+    #debugMenu h2 { margin-top: 0; }
+    #debugMenu input { margin: 2px 0; padding: 4px; width: 100%; font-size: 14px; }
+    #debugMenu button { margin: 4px 0; padding: 6px; font-size: 14px; }
 
     @media (max-width: 600px) {
       #clock { font-size: 1.4rem }
@@ -102,7 +108,7 @@
   </style>
 </head>
 <body>
-  <div id="version">v2</div>
+  <div id="version">v4</div>
   <div id="clock">00:00:00</div>
 
   <div id="debugMenu">
@@ -110,10 +116,10 @@
     <div>Bubble count: <span id="bubbleCount"></span></div>
     <div style="margin-top:6px; font-size:12px">Bubble Y positions:</div>
     <div id="bubblePositions" style="max-height:140px; overflow:auto; font-family:monospace; font-size:12px; margin-top:4px"></div>
-    <div style="margin-top:6px">
-      <button id="closeDebug">Close</button>
-      <button id="recompute" style="margin-left:6px">Recompute Grid</button>
-    </div>
+    <h2>Bubble Editor</h2>
+    <button id="addBubble">Add Bubble</button>
+    <div id="bubbleEditor"></div>
+    <button id="closeDebug">Close Editor</button>
   </div>
 
   <div class="timeline-container" id="timelineContainer">
@@ -137,15 +143,16 @@
       const timelineEl = document.getElementById('timeline');
       const timelineContainer = document.getElementById('timelineContainer');
       const currentLine = document.getElementById('currentLine');
+      const bubbleCountEl = document.getElementById('bubbleCount');
+      const bubblePositionsEl = document.getElementById('bubblePositions');
       const versionEl = document.getElementById('version');
       const debugMenu = document.getElementById('debugMenu');
       const canvasHeightEl = document.getElementById('canvasHeight');
-      const bubbleCountEl = document.getElementById('bubbleCount');
-      const bubblePositionsEl = document.getElementById('bubblePositions');
+      const bubbleEditor = document.getElementById('bubbleEditor');
       const closeDebug = document.getElementById('closeDebug');
-      const recomputeBtn = document.getElementById('recompute');
+      const addBubbleBtn = document.getElementById('addBubble');
 
-      const bubbles = Array.from(document.querySelectorAll('.bubble'));
+      let bubbles = Array.from(document.querySelectorAll('.bubble'));
 
       function updateClock() {
         const now = new Date();
@@ -160,7 +167,7 @@
         const [h,m] = timeStr.split(':').map(Number);
         return ((h + m/60 - 7) / 1) * 100;
       }
-
+      
       function resizeTimeline() {
         const padding = 40;
         timelineEl.style.height = (window.innerHeight - padding*2) + 'px';
@@ -218,17 +225,88 @@
       window.addEventListener('orientationchange', resizeTimeline);
       resizeTimeline();
 
-      // Drag & drop code remains unchanged
+function renderDebugMenu() {
+  bubbleEditor.innerHTML = '';
+  bubbles.forEach((b, i) => {
+    const div = document.createElement('div');
+    div.style.border = '1px solid #ccc';
+    div.style.marginBottom = '8px';
+    div.style.padding = '4px';
+
+    const textInput = document.createElement('input');
+    textInput.value = b.innerHTML;
+    textInput.addEventListener('input', () => { b.innerHTML = textInput.value; });
+
+    const topInput = document.createElement('input');
+    topInput.type = 'number';
+    topInput.value = parseFloat(b.style.top);
+    topInput.addEventListener('input', () => { b.style.top = topInput.value + 'px'; });
+
+    const xInput = document.createElement('input');
+    xInput.type = 'number';
+    xInput.value = parseFloat(b.style.left);
+    xInput.placeholder = 'X (px)';
+    xInput.addEventListener('input', () => { b.style.left = xInput.value + 'px'; });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => {
+      b.remove();
+      bubbles = bubbles.filter(x => x !== b);
+      renderDebugMenu();
+    });
+
+    div.appendChild(document.createTextNode(`Bubble ${i+1}`));
+    div.appendChild(textInput);
+    div.appendChild(topInput);
+    div.appendChild(xInput);
+    div.appendChild(deleteBtn);
+    bubbleEditor.appendChild(div);
+  });
+}
+
+      // Make dynamically added bubbles draggable
+function makeDraggable(bubble) {
+  bubble.addEventListener('touchstart', startDrag, {passive:false});
+  bubble.addEventListener('touchmove', onDrag, {passive:false});
+  bubble.addEventListener('touchend', endDrag);
+  bubble.addEventListener('touchcancel', endDrag);
+  bubble.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startDrag(e);
+    const m = ev => onDrag(ev);
+    const u = () => { endDrag(); window.removeEventListener('mousemove', m); window.removeEventListener('mouseup', u); };
+    window.addEventListener('mousemove', m);
+    window.addEventListener('mouseup', u);
+  });
+}
+
+            // Drag & drop code remains unchanged
       let dragItem=null,offsetX=0,offsetY=0;
       function startDrag(e){if(e.cancelable)e.preventDefault();dragItem=e.currentTarget;dragItem.style.zIndex=999;const t=(e.touches&&e.touches[0])||e;const r=dragItem.getBoundingClientRect();offsetX=t.clientX-r.left;offsetY=t.clientY-r.top;dragItem.style.transition='';dragItem.style.transform='scale(1.03)';}
       function onDrag(e){if(!dragItem)return;if(e.cancelable)e.preventDefault();const t=(e.touches&&e.touches[0])||e;const x=t.clientX-offsetX;const y=t.clientY-offsetY;const tr=timelineEl.getBoundingClientRect();const br=dragItem.getBoundingClientRect();let nx=x;if(nx<tr.left)nx=tr.left;if(nx+br.width>tr.right)nx=tr.right-br.width;dragItem.style.left=(nx-tr.left)+'px';dragItem.style.top=y+'px';}
       function endDrag(){if(!dragItem)return;const origTop=parseFloat(dragItem.dataset.origTop)||0;const origLeft=dragItem.dataset.origLeft||'0%';const origWidth=dragItem.dataset.origWidth||'50px';dragItem.style.transition='left 0.6s ease, top 0.6s ease, width 0.6s ease, transform 0.2s ease';dragItem.style.left=origLeft;dragItem.style.top=origTop+'px';dragItem.style.width=origWidth;dragItem.style.transform='';const tc=dragItem;setTimeout(()=>{if(!tc)return;tc.style.transition='';tc.style.zIndex='';},650);dragItem=null;}
       bubbles.forEach(b=>{b.addEventListener('touchstart',startDrag,{passive:false});b.addEventListener('touchmove',onDrag,{passive:false});b.addEventListener('touchend',endDrag);b.addEventListener('touchcancel',endDrag);b.addEventListener('mousedown',e=>{e.preventDefault();startDrag(e);const m=ev=>onDrag(ev);const u=()=>{endDrag();window.removeEventListener('mousemove',m);window.removeEventListener('mouseup',u);};window.addEventListener('mousemove',m);window.addEventListener('mouseup',u);});});
 
-      versionEl.addEventListener('click',()=>{versionEl.style.opacity=versionEl.style.opacity==='0.4'?'1.0':'0.4';computeGrid();debugMenu.style.display='block';});
-      closeDebug.addEventListener('click',()=>{debugMenu.style.display='none';});
-      recomputeBtn.addEventListener('click',()=>{computeGrid();updateCurrentLine();});
-      window._computeGrid=computeGrid;
+      addBubbleBtn.addEventListener('click', () => {
+        const newBubble = document.createElement('div');
+        newBubble.className = 'bubble';
+        newBubble.dataset.start = '7:00';
+        newBubble.dataset.end = '7:05';
+        newBubble.innerHTML = 'New Bubble<br>7:00–7:05';
+        timelineEl.appendChild(newBubble);
+        bubbles.push(newBubble);
+        makeDraggable(newBubble);
+        renderDebugMenu();
+      });
+      bubbles.forEach(b => makeDraggable(b));
+      
+      versionEl.addEventListener('click', () => {
+        debugMenu.style.display = 'block';
+        renderDebugMenu();
+      });
+
+      closeDebug.addEventListener('click', () => { debugMenu.style.display = 'none'; });
     });
   </script>
 </body>

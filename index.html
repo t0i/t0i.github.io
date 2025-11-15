@@ -300,11 +300,6 @@ function renderDebugMenu() {
     div.appendChild(deleteBtn);
     bubbleEditor.appendChild(div);
 
-    // Bottom spacer to prevent cutoff
-  const spacer = document.createElement('div');
-  spacer.style.height = '80px'; // ensures extra room at bottom
-  bubbleEditor.appendChild(spacer);
-
   });
 
   // Save button for positions
@@ -318,6 +313,11 @@ function renderDebugMenu() {
     alert('Bubble positions saved!');
   });
   bubbleEditor.appendChild(saveBtn);
+
+  // Bottom spacer to prevent cutoff
+  const spacer = document.createElement('div');
+  spacer.style.height = '80px'; // ensures extra room at bottom
+  bubbleEditor.appendChild(spacer);
 
 }
 

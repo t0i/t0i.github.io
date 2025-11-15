@@ -1,87 +1,226 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<script>
-function appendText(text) {
-  let textBox = document.getElementById("textarea1");
-  textBox.value += getTime();
-  textBox.value += " " + text;
-  textBox.value += "\n";
-}
-function clearit() {
-  let textBox = document.getElementById("textarea1");
-  textBox.value = "Logs\n"
-  let e1rctr = document.getElementById("e1repcounter").innerHTML;
-  document.getElementById("e1repcounter").innerHTML = "0";
-}
-
-let countdown;
-
-function startCountdown() {
-  let e1rctr = document.getElementById("e1repcounter").innerHTML;
-  console.log("value =" + parseInt(e1rctr,10));
-  document.getElementById("e1repcounter").innerHTML = parseInt(e1rctr,10) + 1;
-
-  let seconds = 10;
-  let countdownElement = document.getElementById("countdown");
-  appendText("Start 10s timer!");
-  countdown = setInterval(function() {
-    seconds--;
-    document.getElementById("countdownElement").innerHTML = seconds;
-
-    if (seconds === 0) {
-      clearInterval(countdown);
-      appendText("Countdown complete!");
-      console.log("Countdown complete!");
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Toddler Morning Schedule</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      -webkit-user-select: none;
+      touch-action: none;
     }
-  }, 1000);
-}
 
-function getTime() {
-  let now = new Date();
-  return now.toLocaleTimeString();
-}
+    #clock {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 2rem;
+      background: #222;
+      color: #0f0;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-family: "Courier New", monospace;
+      z-index: 50;
+    }
 
-let button = document.getElementById("b1");
-button.addEventListener("click", startCountdown);
-</script>
+    #version {
+      position: fixed;
+      left: 10px;
+      top: 10px;
+      font-size: 14px;
+      opacity: 0.4;
+      cursor: pointer;
+      z-index: 50;
+      user-select: none;
+    }
+
+    .timeline-container {
+      margin-top: 80px;
+      position: relative;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    .timeline {
+      position: relative;
+      border-top: 4px solid #444;
+      margin: 40px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
+    }
+
+    .bubble {
+      position: absolute;
+      padding: 10px 15px;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      text-align: center;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-drag: none;
+      transition: transform 0.15s ease;
+      touch-action: none;
+    }
+
+    .bubble:active { cursor: grabbing }
+
+    .current-line {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: red;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    #debugMenu {
+      position: fixed;
+      right: 10px;
+      top: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 8px;
+      font-size: 12px;
+      display: none;
+      z-index: 9999;
+    }
+
+    @media (max-width: 600px) {
+      #clock { font-size: 1.4rem }
+    }
+  </style>
 </head>
 <body>
-<style>
-  .lg {
-    font-size: 18px;
-    font-weight: bold;
-  }
-</style>
-<table>
-<tr>
-<td>
-<p class="lg">Timer:</p>
-<p id="countdownElement" class="lg">TIMER</p>
+  <div id="version">v1.0.0</div>
+  <div id="clock">00:00:00</div>
 
-<button id="b1" type="button" onclick="startCountdown()">Start 10sec timer</button>
-<button id="b2" type="button" onclick="clearit()">Reset</button>
-</td>
-<td>&nbsp;
-</td>
-<td>
-<div>Exercise Repetition Counter:</div><span id="e1repcounter">0</span>
-</td>
-</tr>
-</table>
-<p>
-1: <img src="ex1.png"></img>
-2: <img src="ex2.png"></img>
-3: <img src="ex3.png"></img>
-4: <img src="ex4.png"></img>
-5: <img src="ex5.png"></img><br>
-6: <img src="ex6.png"></img>
-7: <img src="ex7.png"></img>
-8: <img src="ex8.png"></img>
-9: <img src="ex9.png"></img>
-10: <img src="ex10.png"></img><br>
-<textarea id="textarea1" name="textarea1" rows="15" cols="50">
-Logs
-</textarea>
+  <div id="debugMenu">
+    <div>Canvas Height: <span id="canvasHeight"></span> px</div>
+    <div>Bubble count: <span id="bubbleCount"></span></div>
+    <div style="margin-top:6px; font-size:12px">Bubble Y positions:</div>
+    <div id="bubblePositions" style="max-height:140px; overflow:auto; font-family:monospace; font-size:12px; margin-top:4px"></div>
+    <div style="margin-top:6px">
+      <button id="closeDebug">Close</button>
+      <button id="recompute" style="margin-left:6px">Recompute Grid</button>
+    </div>
+  </div>
+
+  <div class="timeline-container" id="timelineContainer">
+    <div class="timeline" id="timeline">
+      <div class="current-line" id="currentLine"></div>
+
+      <div class="bubble" data-start="7:00" data-end="7:10">🌅🚽 Wake Up<br>7:00–7:10</div>
+      <div class="bubble" data-start="7:10" data-end="7:30">🥣 Breakfast<br>7:10–7:30</div>
+      <div class="bubble" data-start="7:30" data-end="7:40">👕👖 Get Dressed<br>7:30–7:40</div>
+      <div class="bubble" data-start="7:40" data-end="7:45">🪥 Brush Teeth<br>7:40–7:45</div>
+      <div class="bubble" data-start="7:45" data-end="7:50">🧥👟 Shoes & Jacket<br>7:45–7:50</div>
+      <div class="bubble" data-start="7:50" data-end="8:00">🚗 Get in Car<br>7:50–8:00</div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const clockEl = document.getElementById('clock');
+      const timelineEl = document.getElementById('timeline');
+      const timelineContainer = document.getElementById('timelineContainer');
+      const currentLine = document.getElementById('currentLine');
+      const versionEl = document.getElementById('version');
+      const debugMenu = document.getElementById('debugMenu');
+      const canvasHeightEl = document.getElementById('canvasHeight');
+      const bubbleCountEl = document.getElementById('bubbleCount');
+      const bubblePositionsEl = document.getElementById('bubblePositions');
+      const closeDebug = document.getElementById('closeDebug');
+      const recomputeBtn = document.getElementById('recompute');
+
+      const bubbles = Array.from(document.querySelectorAll('.bubble'));
+
+      function updateClock() {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2,'0');
+        const mm = String(now.getMinutes()).padStart(2,'0');
+        const ss = String(now.getSeconds()).padStart(2,'0');
+        clockEl.textContent = `${hh}:${mm}:${ss}`;
+      }
+      setInterval(updateClock,1000); updateClock();
+
+      function timeToPercent(timeStr) {
+        const [h,m] = timeStr.split(':').map(Number);
+        return ((h + m/60 - 7) / 1) * 100;
+      }
+
+      function resizeTimeline() {
+        const padding = 40;
+        timelineEl.style.height = (window.innerHeight - padding*2) + 'px';
+        computeGrid();
+        updateCurrentLine();
+      }
+
+      function computeGrid() {
+        const containerRect = timelineEl.getBoundingClientRect();
+        const padding = Math.max(40, containerRect.height*0.08);
+        const usableHeight = Math.max(100, containerRect.height - padding*2);
+        const step = usableHeight / Math.max(1,bubbles.length -1);
+
+        bubbles.forEach((b,i) => {
+          const top = padding + i*step - (b.getBoundingClientRect().height/2);
+          b.style.top = top + 'px';
+
+          const start = b.dataset.start || '7:00';
+          const end = b.dataset.end || '7:15';
+          const leftPercent = timeToPercent(start);
+          const rightPercent = timeToPercent(end);
+          const widthPercent = Math.max(5, rightPercent - leftPercent);
+          b.style.left = leftPercent + '%';
+          b.style.width = widthPercent + '%';
+
+          b.dataset.origTop = top;
+          b.dataset.origLeft = b.style.left;
+          b.dataset.origWidth = b.style.width;
+        });
+
+        canvasHeightEl.textContent = Math.round(containerRect.height);
+        bubbleCountEl.textContent = bubbles.length;
+        bubblePositionsEl.innerHTML = bubbles.map((b,j)=>`${j+1}: top=${Math.round(parseFloat(b.dataset.origTop))}px, left=${b.dataset.origLeft}, width=${b.dataset.origWidth}`).join('<br>');
+      }
+
+      function updateCurrentLine() {
+        const now = new Date();
+        const hours = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
+        if(hours < 7 || hours > 8) {
+          currentLine.style.display='none';
+          return;
+        } else {
+          currentLine.style.display='block';
+        }
+        const percent = ((hours-7)/1)*100;
+        const timelineWidth = timelineEl.getBoundingClientRect().width;
+        currentLine.style.left = (timelineWidth * percent/100) + 'px';
+        currentLine.style.height = timelineEl.getBoundingClientRect().height + 'px';
+      }
+
+      setInterval(updateCurrentLine,1000);
+      setInterval(computeGrid,3000);
+
+      window.addEventListener('resize', resizeTimeline);
+      window.addEventListener('orientationchange', resizeTimeline);
+      resizeTimeline();
+
+      // Drag & drop code remains unchanged
+      let dragItem=null,offsetX=0,offsetY=0;
+      function startDrag(e){if(e.cancelable)e.preventDefault();dragItem=e.currentTarget;dragItem.style.zIndex=999;const t=(e.touches&&e.touches[0])||e;const r=dragItem.getBoundingClientRect();offsetX=t.clientX-r.left;offsetY=t.clientY-r.top;dragItem.style.transition='';dragItem.style.transform='scale(1.03)';}
+      function onDrag(e){if(!dragItem)return;if(e.cancelable)e.preventDefault();const t=(e.touches&&e.touches[0])||e;const x=t.clientX-offsetX;const y=t.clientY-offsetY;const tr=timelineEl.getBoundingClientRect();const br=dragItem.getBoundingClientRect();let nx=x;if(nx<tr.left)nx=tr.left;if(nx+br.width>tr.right)nx=tr.right-br.width;dragItem.style.left=(nx-tr.left)+'px';dragItem.style.top=y+'px';}
+      function endDrag(){if(!dragItem)return;const origTop=parseFloat(dragItem.dataset.origTop)||0;const origLeft=dragItem.dataset.origLeft||'0%';const origWidth=dragItem.dataset.origWidth||'50px';dragItem.style.transition='left 0.6s ease, top 0.6s ease, width 0.6s ease, transform 0.2s ease';dragItem.style.left=origLeft;dragItem.style.top=origTop+'px';dragItem.style.width=origWidth;dragItem.style.transform='';const tc=dragItem;setTimeout(()=>{if(!tc)return;tc.style.transition='';tc.style.zIndex='';},650);dragItem=null;}
+      bubbles.forEach(b=>{b.addEventListener('touchstart',startDrag,{passive:false});b.addEventListener('touchmove',onDrag,{passive:false});b.addEventListener('touchend',endDrag);b.addEventListener('touchcancel',endDrag);b.addEventListener('mousedown',e=>{e.preventDefault();startDrag(e);const m=ev=>onDrag(ev);const u=()=>{endDrag();window.removeEventListener('mousemove',m);window.removeEventListener('mouseup',u);};window.addEventListener('mousemove',m);window.addEventListener('mouseup',u);});});
+
+      versionEl.addEventListener('click',()=>{versionEl.style.opacity=versionEl.style.opacity==='0.4'?'1.0':'0.4';computeGrid();debugMenu.style.display='block';});
+      closeDebug.addEventListener('click',()=>{debugMenu.style.display='none';});
+      recomputeBtn.addEventListener('click',()=>{computeGrid();updateCurrentLine();});
+      window._computeGrid=computeGrid;
+    });
+  </script>
 </body>
-</html> 
+</html>

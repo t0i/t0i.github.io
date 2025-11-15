@@ -256,6 +256,17 @@ function renderDebugMenu() {
       renderDebugMenu();
     });
 
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Save Position';
+    saveBtn.addEventListener('click', () => {
+      bubbles.forEach(b => {
+        b.dataset.origTop = parseFloat(b.style.top);
+        b.dataset.origLeft = b.style.left;
+    });
+    });
+    bubbleEditor.appendChild(saveBtn);
+
+
     div.appendChild(document.createTextNode(`Bubble ${i+1}`));
     div.appendChild(textInput);
     div.appendChild(topInput);

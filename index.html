@@ -178,7 +178,7 @@
 
       function computeGrid() {
         const containerRect = timelineEl.getBoundingClientRect();
-        const padding = Math.max(40, containerRect.height*0.08);
+        const padding = Math.max(40, containerRect.height*0.16);
         const usableHeight = Math.max(100, containerRect.height - padding*2);
         const step = usableHeight / Math.max(1,bubbles.length -1);
 
